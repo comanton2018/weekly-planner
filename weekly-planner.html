@@ -199,7 +199,14 @@
 
 <div class="header">
   <h1>Недельный <span>Планер</span></h1>
-  <div class="date" id="todayDate"></div>
+
+  <div style="margin-top:10px; display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap;">
+    <button onclick="shiftWeek(-1)" style="background:#131a26;border:1px solid #1a2235;color:#e2e8f0;border-radius:10px;padding:8px 12px;cursor:pointer;">◀︎ Пред</button>
+    <div class="date" id="weekLabel" style="margin:0;"></div>
+    <button onclick="shiftWeek(1)" style="background:#131a26;border:1px solid #1a2235;color:#e2e8f0;border-radius:10px;padding:8px 12px;cursor:pointer;">След ▶︎</button>
+  </div>
+
+  <div class="date" id="todayDate" style="margin-top:10px;"></div>
 </div>
 
 <div class="week-grid" id="weekGrid"></div>
