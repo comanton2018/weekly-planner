@@ -197,6 +197,7 @@
 </head>
 <body>
 
+
 <div class="header">
   <h1>Недельный <span>Планер</span></h1>
 
@@ -208,6 +209,7 @@
 
   <div class="date" id="todayDate" style="margin-top:10px;"></div>
 </div>
+
 
 <div class="week-grid" id="weekGrid"></div>
 
@@ -238,11 +240,85 @@
 <script>
 const DAYS = ["ПН","ВТ","СР","ЧТ","ПТ","СБ","ВС"];
 const COLORS = ["#6EE7C7","#A78BFA","#FCD34D","#F472B6","#60A5FA","#FB923C","#34D399"];
-let idCounter = 1;
 
-// State
+let weekOffset = 0; // 0 = текущая неделя
+
 let dayTasks = DAYS.map(() => []);
 let freeTasks = [];
+let idCounter = 1;
+
+// ====== WEEK HELPERS ======
+function getMonday(d) {
+  const x = new Date(d);
+  x.setHours(0,0,0,0);
+  const day = x.getDay(); // 0..6 (вс=0)
+  const diff = (day === 0 ? -6 : 1) - day; // до понедельника
+  x.setDate(x.getDate() + diff);
+  return x;
+}
+
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString("ru-RU", { day:"2-digit", month:"2-digit", year:"numeric" });
+}
+
+function weekKey() {
+  const baseMonday = getMonday(new Date());
+  const monday = addDays(baseMonday, weekOffset * 7);
+  return "weekly_planner_v1__" + monday.toISOString().slice(0,10);
+}
+
+function updateWeekLabel() {
+  const baseMonday = getMonday(new Date());
+  const monday = addDays(baseMonday, weekOffset * 7);
+  const sunday = addDays(monday, 6);
+  const el = document.getElementById("weekLabel");
+  if (el) el.textContent = `${fmtDate(monday)} – ${fmtDate(sunday)}`.toUpperCase();
+}
+
+// ====== PERSIST ======
+function saveState() {
+  const payload = { dayTasks, freeTasks, idCounter };
+  localStorage.setItem(weekKey(), JSON.stringify(payload));
+}
+
+function loadState() {
+  const raw = localStorage.getItem(weekKey());
+  if (!raw) {
+    dayTasks = DAYS.map(() => []);
+    freeTasks = [];
+    idCounter = 1;
+    return;
+  }
+  try {
+    const data = JSON.parse(raw);
+    dayTasks = Array.isArray(data.dayTasks) ? data.dayTasks : DAYS.map(() => []);
+    freeTasks = Array.isArray(data.freeTasks) ? data.freeTasks : [];
+    idCounter = Number.isFinite(data.idCounter) ? data.idCounter : 1;
+  } catch (e) {
+    dayTasks = DAYS.map(() => []);
+    freeTasks = [];
+    idCounter = 1;
+  }
+}
+
+function rerenderAll() {
+  DAYS.forEach((_, i) => renderDayTasks(i));
+  updateBarChart();
+  renderFreeTasks();
+}
+
+function shiftWeek(delta) {
+  weekOffset += delta;
+  updateWeekLabel();
+  loadState();
+  rerenderAll();
+}
 
 // Date
 const d = new Date();
@@ -317,16 +393,22 @@ function addDayTask(i) {
   if (!text) return;
   dayTasks[i].push({ id: idCounter++, text, done: false });
   inp.value = "";
+  saveState();
   renderDayTasks(i);
 }
 
 function toggleDayTask(i, id) {
   const t = dayTasks[i].find(t => t.id === id);
-  if (t) { t.done = !t.done; renderDayTasks(i); }
+  if (t) {
+    t.done = !t.done;
+    saveState();
+    renderDayTasks(i);
+  }
 }
 
 function deleteDayTask(i, id) {
   dayTasks[i] = dayTasks[i].filter(t => t.id !== id);
+  saveState();
   renderDayTasks(i);
 }
 
@@ -380,16 +462,22 @@ function addFreeTask() {
   if (!text) return;
   freeTasks.push({ id: idCounter++, text, done: false });
   inp.value = "";
+  saveState();
   renderFreeTasks();
 }
 
 function toggleFreeTask(id) {
   const t = freeTasks.find(t => t.id === id);
-  if (t) { t.done = !t.done; renderFreeTasks(); }
+  if (t) {
+    t.done = !t.done;
+    saveState();
+    renderFreeTasks();
+  }
 }
 
 function deleteFreeTask(id) {
   freeTasks = freeTasks.filter(t => t.id !== id);
+  saveState();
   renderFreeTasks();
 }
 
@@ -403,9 +491,9 @@ function escHtml(s) {
 
 // Init
 buildWeekGrid();
-DAYS.forEach((_, i) => renderDayTasks(i));
-updateBarChart();
-renderFreeTasks();
+updateWeekLabel();
+loadState();
+rerenderAll();
 </script>
 </body>
 </html>
