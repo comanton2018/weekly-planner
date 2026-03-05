@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Недельный Планер</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07090f;
+    --surface: #0d1117;
+    --card: #0f1623;
+    --border: #1a2235;
+    --text: #e2e8f0;
+    --muted: #3d5068;
+    --c0: #6EE7C7; --c1: #A78BFA; --c2: #FCD34D;
+    --c3: #F472B6; --c4: #60A5FA; --c5: #FB923C; --c6: #34D399;
+    --free: #60A5FA;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    padding: 28px 20px 60px;
+    background-image:
+      radial-gradient(ellipse at 15% 5%, #0d1f3c 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 90%, #0a1628 0%, transparent 45%);
+  }
+
+  /* HEADER */
+  .header { text-align: center; margin-bottom: 28px; }
+  .header h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 22px; font-weight: 900;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text);
+  }
+  .header h1 span { color: var(--c0); text-shadow: 0 0 24px #6EE7C755; }
+  .header .date { font-size: 10px; color: var(--muted); margin-top: 5px; letter-spacing: 3px; }
+
+  /* WEEK GRID */
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  /* DAY CARD */
+  .day-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 10px 10px;
+    display: flex; flex-direction: column; gap: 10px;
+    min-width: 120px;
+    animation: fadeUp 0.5s ease both;
+  }
+  .day-card.weekend { background: #0a0f19; border-color: #151d2e; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .day-card:nth-child(1) { animation-delay: 0.05s; }
+  .day-card:nth-child(2) { animation-delay: 0.1s; }
+  .day-card:nth-child(3) { animation-delay: 0.15s; }
+  .day-card:nth-child(4) { animation-delay: 0.2s; }
+  .day-card:nth-child(5) { animation-delay: 0.25s; }
+  .day-card:nth-child(6) { animation-delay: 0.3s; }
+  .day-card:nth-child(7) { animation-delay: 0.35s; }
+
+  .day-header { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .day-label {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: 2px;
+  }
+  .day-count { font-size: 10px; color: var(--muted); }
+
+  /* SVG RING */
+  .ring-wrap { position: relative; }
+  .ring-wrap svg { display: block; transition: filter 0.4s; }
+  .ring-track { fill: none; stroke: #1e293b; stroke-width: 8; }
+  .ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.7s cubic-bezier(.4,2,.6,1); transform-origin: center; transform: rotate(-90deg); }
+  .ring-text { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 12px; }
+
+  /* TASKS */
+  .tasks-list { flex: 1; min-height: 50px; max-height: 200px; overflow-y: auto; }
+  .tasks-list::-webkit-scrollbar { width: 3px; }
+  .tasks-list::-webkit-scrollbar-track { background: transparent; }
+  .tasks-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .task-item {
+    display: flex; align-items: flex-start; gap: 7px; padding: 5px 2px;
+    border-bottom: 1px solid #131a26;
+    transition: background 0.15s;
+  }
+  .task-item:hover { background: #111827; border-radius: 6px; }
+  .task-cb {
+    width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--border);
+    background: transparent; cursor: pointer; flex-shrink: 0; margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-size: 9px; font-weight: 900;
+  }
+  .task-cb.done { color: #07090f; }
+  .task-text {
+    flex: 1; font-size: 11px; line-height: 1.4; color: var(--text);
+    word-break: break-word; transition: all 0.2s;
+  }
+  .task-text.done { color: var(--muted); text-decoration: line-through; }
+  .task-del {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 15px; line-height: 1; padding: 0 2px; transition: color 0.15s; flex-shrink: 0;
+  }
+  .task-del:hover { color: #ef4444; }
+  .no-tasks { color: var(--muted); font-size: 11px; text-align: center; padding: 14px 0; }
+
+  /* INPUT */
+  .add-row { display: flex; gap: 5px; }
+  .add-input {
+    flex: 1; background: #131a26; border: 1px solid var(--border);
+    border-radius: 7px; padding: 5px 8px; color: var(--text); font-size: 11px;
+    font-family: 'Space Mono', monospace; outline: none; min-width: 0;
+    transition: border-color 0.2s;
+  }
+  .add-input:focus { border-color: var(--muted); }
+  .add-btn {
+    border: none; border-radius: 7px; padding: 5px 10px;
+    color: #07090f; font-weight: 900; cursor: pointer;
+    font-size: 15px; flex-shrink: 0; transition: filter 0.2s;
+  }
+  .add-btn:hover { filter: brightness(1.2); }
+
+  /* BOTTOM ROW */
+  .bottom-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+
+  /* BAR CHART */
+  .bar-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px 18px 14px;
+  }
+  .panel-label {
+    font-size: 10px; color: var(--muted); letter-spacing: 3px; margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 90px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar-pct { font-size: 9px; font-family: monospace; height: 12px; }
+  .bar-track { width: 100%; display: flex; align-items: flex-end; height: 65px; }
+  .bar-fill {
+    width: 100%; border-radius: 4px 4px 0 0;
+    min-height: 3px; opacity: 0.85;
+    transition: height 0.7s cubic-bezier(.4,2,.6,1);
+  }
+  .bar-day { font-size: 9px; color: var(--muted); font-family: monospace; }
+
+  /* FREE TASKS */
+  .free-panel {
+    background: var(--surface); border: 1px solid #1a2d4a;
+    border-radius: 16px; padding: 18px 18px 14px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .free-header { display: flex; align-items: center; justify-content: space-between; }
+  .free-title { color: var(--free); font-size: 12px; font-weight: 700; letter-spacing: 2px; }
+  .free-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .free-count { font-size: 22px; font-weight: 700; color: var(--free); text-align: right; line-height: 1; }
+  .free-count-sub { font-size: 10px; color: var(--muted); }
+  .free-tasks { max-height: 160px; overflow-y: auto; }
+  .free-tasks::-webkit-scrollbar { width: 3px; }
+  .free-tasks::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .free-add-row { display: flex; gap: 8px; }
+  .free-add-input {
+    flex: 1; background: #131a26; border: 1px solid #1a2d4a;
+    border-radius: 8px; padding: 7px 12px; color: var(--text); font-size: 12px;
+    font-family: 'Space Mono', monospace; outline: none; transition: border-color 0.2s;
+  }
+  .free-add-input:focus { border-color: var(--free); }
+  .free-add-btn {
+    background: var(--free); border: none; border-radius: 8px; padding: 7px 16px;
+    color: #07090f; font-weight: 900; cursor: pointer; font-size: 14px; transition: filter 0.2s;
+  }
+  .free-add-btn:hover { filter: brightness(1.15); }
+
+  @media (max-width: 900px) {
+    .week-grid { grid-template-columns: repeat(4, 1fr); }
+    .bottom-row { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 500px) {
+    .week-grid { grid-template-columns: repeat(2, 1fr); }
+    body { padding: 16px 10px 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Недельный <span>Планер</span></h1>
+  <div class="date" id="todayDate"></div>
+</div>
+
+<div class="week-grid" id="weekGrid"></div>
+
+<div class="bottom-row">
+  <div class="bar-panel">
+    <div class="panel-label">📊 Прогресс по дням</div>
+    <div class="bar-chart" id="barChart"></div>
+  </div>
+  <div class="free-panel">
+    <div class="free-header">
+      <div>
+        <div class="free-title">📋 Свободные задачи</div>
+        <div class="free-sub">без привязки к дню</div>
+      </div>
+      <div>
+        <div class="free-count" id="freeCount">—</div>
+        <div class="free-count-sub">выполнено</div>
+      </div>
+    </div>
+    <div class="free-tasks" id="freeTasksList"></div>
+    <div class="free-add-row">
+      <input class="free-add-input" id="freeInput" placeholder="Добавить задачу без дня...">
+      <button class="free-add-btn" onclick="addFreeTask()">+</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS = ["ПН","ВТ","СР","ЧТ","ПТ","СБ","ВС"];
+const COLORS = ["#6EE7C7","#A78BFA","#FCD34D","#F472B6","#60A5FA","#FB923C","#34D399"];
+let idCounter = 1;
+
+// State
+let dayTasks = DAYS.map(() => []);
+let freeTasks = [];
+
+// Date
+const d = new Date();
+document.getElementById("todayDate").textContent =
+  d.toLocaleDateString("ru-RU", { weekday:"long", year:"numeric", month:"long", day:"numeric" }).toUpperCase();
+
+// Build week grid
+function buildWeekGrid() {
+  const grid = document.getElementById("weekGrid");
+  grid.innerHTML = "";
+  DAYS.forEach((day, i) => {
+    const card = document.createElement("div");
+    card.className = "day-card" + (i >= 5 ? " weekend" : "");
+    card.id = `day-card-${i}`;
+    card.innerHTML = `
+      <div class="day-header">
+        <div class="day-label" style="color:${COLORS[i]};text-shadow:0 0 12px ${COLORS[i]}55">${day}</div>
+        <div class="ring-wrap">
+          <svg id="ring-svg-${i}" width="68" height="68" style="filter:drop-shadow(0 0 6px ${COLORS[i]}44)">
+            <circle class="ring-track" cx="34" cy="34" r="29"/>
+            <circle class="ring-fill" id="ring-fill-${i}" cx="34" cy="34" r="29"
+              stroke="${COLORS[i]}" stroke-dasharray="${2*Math.PI*29}" stroke-dashoffset="${2*Math.PI*29}"/>
+            <text class="ring-text" id="ring-text-${i}" x="34" y="39" text-anchor="middle" fill="${COLORS[i]}">0%</text>
+          </svg>
+        </div>
+        <div class="day-count" id="day-count-${i}">0/0 задач</div>
+      </div>
+      <div class="tasks-list" id="tasks-list-${i}"></div>
+      <div class="add-row">
+        <input class="add-input" id="input-${i}" placeholder="+ задача"
+          onkeydown="if(event.key==='Enter') addDayTask(${i})">
+        <button class="add-btn" style="background:${COLORS[i]}" onclick="addDayTask(${i})">+</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderDayTasks(i) {
+  const list = document.getElementById(`tasks-list-${i}`);
+  const tasks = dayTasks[i];
+  if (tasks.length === 0) {
+    list.innerHTML = `<div class="no-tasks">нет задач</div>`;
+  } else {
+    list.innerHTML = tasks.map(t => `
+      <div class="task-item" id="ti-${t.id}">
+        <button class="task-cb ${t.done ? "done" : ""}"
+          style="${t.done ? `background:${COLORS[i]};border-color:${COLORS[i]}` : `border-color:${COLORS[i]}55`}"
+          onclick="toggleDayTask(${i},${t.id})">
+          ${t.done ? "✓" : ""}
+        </button>
+        <span class="task-text ${t.done ? "done" : ""}">${escHtml(t.text)}</span>
+        <button class="task-del" onclick="deleteDayTask(${i},${t.id})">×</button>
+      </div>
+    `).join("");
+  }
+  // Ring
+  const done = tasks.filter(t => t.done).length;
+  const total = tasks.length;
+  const pct = total === 0 ? 0 : Math.round(done / total * 100);
+  const circ = 2 * Math.PI * 29;
+  const offset = circ - (pct / 100) * circ;
+  document.getElementById(`ring-fill-${i}`).setAttribute("stroke-dashoffset", offset);
+  document.getElementById(`ring-text-${i}`).textContent = pct + "%";
+  document.getElementById(`day-count-${i}`).textContent = `${done}/${total} задач`;
+  updateBarChart();
+}
+
+function addDayTask(i) {
+  const inp = document.getElementById(`input-${i}`);
+  const text = inp.value.trim();
+  if (!text) return;
+  dayTasks[i].push({ id: idCounter++, text, done: false });
+  inp.value = "";
+  renderDayTasks(i);
+}
+
+function toggleDayTask(i, id) {
+  const t = dayTasks[i].find(t => t.id === id);
+  if (t) { t.done = !t.done; renderDayTasks(i); }
+}
+
+function deleteDayTask(i, id) {
+  dayTasks[i] = dayTasks[i].filter(t => t.id !== id);
+  renderDayTasks(i);
+}
+
+// Bar chart
+function updateBarChart() {
+  const chart = document.getElementById("barChart");
+  const maxTotal = Math.max(...dayTasks.map(t => t.length), 1);
+  chart.innerHTML = dayTasks.map((tasks, i) => {
+    const done = tasks.filter(t => t.done).length;
+    const total = tasks.length;
+    const pct = total === 0 ? 0 : Math.round(done / total * 100);
+    const h = total === 0 ? 3 : Math.max(3, Math.round(done / maxTotal * 62));
+    return `
+      <div class="bar-col">
+        <div class="bar-pct" style="color:${COLORS[i]}">${total > 0 ? pct+"%" : ""}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="height:${h}px;background:${COLORS[i]};${total>0?`box-shadow:0 0 8px ${COLORS[i]}55`:"opacity:0.15"}"></div>
+        </div>
+        <div class="bar-day">${DAYS[i]}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// Free tasks
+function renderFreeTasks() {
+  const list = document.getElementById("freeTasksList");
+  const done = freeTasks.filter(t => t.done).length;
+  const total = freeTasks.length;
+  document.getElementById("freeCount").textContent = total === 0 ? "—" : `${done}/${total}`;
+  if (freeTasks.length === 0) {
+    list.innerHTML = `<div class="no-tasks">Нет свободных задач</div>`;
+    return;
+  }
+  list.innerHTML = freeTasks.map(t => `
+    <div class="task-item">
+      <button class="task-cb ${t.done ? "done" : ""}"
+        style="${t.done ? "background:#60A5FA;border-color:#60A5FA" : "border-color:#60A5FA55"}"
+        onclick="toggleFreeTask(${t.id})">
+        ${t.done ? "✓" : ""}
+      </button>
+      <span class="task-text ${t.done ? "done" : ""}">${escHtml(t.text)}</span>
+      <button class="task-del" onclick="deleteFreeTask(${t.id})">×</button>
+    </div>
+  `).join("");
+}
+
+function addFreeTask() {
+  const inp = document.getElementById("freeInput");
+  const text = inp.value.trim();
+  if (!text) return;
+  freeTasks.push({ id: idCounter++, text, done: false });
+  inp.value = "";
+  renderFreeTasks();
+}
+
+function toggleFreeTask(id) {
+  const t = freeTasks.find(t => t.id === id);
+  if (t) { t.done = !t.done; renderFreeTasks(); }
+}
+
+function deleteFreeTask(id) {
+  freeTasks = freeTasks.filter(t => t.id !== id);
+  renderFreeTasks();
+}
+
+document.getElementById("freeInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") addFreeTask();
+});
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Init
+buildWeekGrid();
+DAYS.forEach((_, i) => renderDayTasks(i));
+updateBarChart();
+renderFreeTasks();
+</script>
+</body>
+</html>
